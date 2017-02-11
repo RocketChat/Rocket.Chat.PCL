@@ -9,6 +9,11 @@ namespace RocketChatPCL
 	
 	public interface IRocketChat
 	{
+		UserCollection Users { get; }
+		RoomCollection Rooms { get; }
+		SettingsCollection Settings { get; }
+		PermissionsCollection Permissions { get; }
+
 		Task<bool> Connect(string username, string password);
 		/// <summary>
 		/// This method call is used to get server-wide special users and their roles. 
