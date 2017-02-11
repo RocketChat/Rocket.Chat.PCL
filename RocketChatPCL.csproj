@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{54C707AE-FE4F-4347-B8BB-BEF74FF3FE74}</ProjectGuid>
+    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <UseMSBuildEngine>true</UseMSBuildEngine>
+    <OutputType>Library</OutputType>
+    <RootNamespace>RocketChatPCL</RootNamespace>
+    <AssemblyName>RocketChatPCL</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Profile111</TargetFrameworkProfile>
+    <ReleaseVersion>1.0.0</ReleaseVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="IRocketChat.cs" />
+    <Compile Include="Subscription.cs" />
+    <Compile Include="RoomType.cs" />
+    <Compile Include="IRestClient.cs" />
+    <Compile Include="RestResponse.cs" />
+    <Compile Include="UserLoginRequest.cs" />
+    <Compile Include="ErrorMessage.cs" />
+    <Compile Include="StandardResponse.cs" />
+    <Compile Include="SuccessfulAuthorization.cs" />
+    <Compile Include="User.cs" />
+    <Compile Include="CustomEmoji.cs" />
+    <Compile Include="Message.cs" />
+    <Compile Include="AttachedUrl.cs" />
+    <Compile Include="Attachment.cs" />
+    <Compile Include="TypeUtils.cs" />
+    <Compile Include="Bot.cs" />
+    <Compile Include="Room.cs" />
+    <Compile Include="CollectionDiff.cs" />
+    <Compile Include="RoomRole.cs" />
+    <Compile Include="Permission.cs" />
+    <Compile Include="PermissionMeta.cs" />
+    <Compile Include="UserStatus.cs" />
+    <Compile Include="AbstractRocketChatClient.cs" />
+    <Compile Include="Collections\IRoomCollection.cs" />
+    <Compile Include="Collections\ISubscriptionCollection.cs" />
+    <Compile Include="Collections\RoomCollection.cs" />
+    <Compile Include="Collections\SettingsCollection.cs" />
+    <Compile Include="Collections\ISettingsCollection.cs" />
+    <Compile Include="Collections\PermissionsCollection.cs" />
+    <Compile Include="Collections\IPermissionsCollection.cs" />
+    <Compile Include="Collections\IUserCollection.cs" />
+    <Compile Include="Collections\UserCollection.cs" />
+    <Compile Include="Collections\AbstractCollection.cs" />
+    <Compile Include="Collections\IRCollection.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Collections\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="MeteorPCL">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\MeteorPCL.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PCLCrypto">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\PCLCrypto.dll</HintPath>
+    </Reference>
+    <Reference Include="PInvoke.BCrypt">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\PInvoke.BCrypt.dll</HintPath>
+    </Reference>
+    <Reference Include="PInvoke.Kernel32">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\PInvoke.Kernel32.dll</HintPath>
+    </Reference>
+    <Reference Include="PInvoke.NCrypt">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\PInvoke.NCrypt.dll</HintPath>
+    </Reference>
+    <Reference Include="PInvoke.Windows.Core">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\PInvoke.Windows.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Validation">
+      <HintPath>packages\MeteorPCL.1.0.8\lib\portable45-net45+win8+wpa81\Validation.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
+</Project>

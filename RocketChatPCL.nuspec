@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <version>0.1.0</version>
+    <authors>Shaun Campbell</authors>
+    <owners>Shaun Campbell</owners>
+    <licenseUrl>https://github.com/RocketChat/Rocket.Chat.PCL/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/RocketChat/Rocket.Chat.PCL</projectUrl>
+    <id>RocketChatPCL</id>
+    <title>RocketChatPCL</title>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Portable Class Libraries - Xamarin implementation of the Rocket.Chat Real-Time API</description>
+    <copyright>Copyright Rocket.Chat © 2017</copyright>
+    <dependencies>
+    <group targetFramework="portable45-net45+win8+wpa81+MonoAndroid403+xamarinios10">
+	    <dependency id="PCLCrypto" version="2.0.147" />
+	  </group>
+      <group targetFramework="portable45-net45+win8+wpa81">
+	    <dependency id="Newtonsoft.Json" version="9.0.1" />
+	    <dependency id="MeteorPCL" version="1.0.8" />
+	  </group>
+      <group targetFramework="MonoAndroid403">
+        <dependency id="Newtonsoft.Json" version="9.0.1" />
+		<dependency id="WebSocket4Net" version="0.14.1" />
+		<dependency id="MeteorPCL" version="1.0.8" />
+      </group>
+      <group targetFramework="xamarinios10">
+        <dependency id="Newtonsoft.Json" version="9.0.1" />
+		<dependency id="WebSocket4Net" version="0.14.1" />
+		<dependency id="MeteorPCL" version="1.0.8" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin/Release/*.dll" target="lib/portable45-net45+win8+wpa81" />
+    <file src="RocketChatPCL.iOS/bin/Release/*.dll" target="lib/Xamarin.iOS10" />
+    <file src="RocketChatPCL.Android/bin/Release/*.dll" target="lib/MonoAndroid403" />
+  </files>
+  </package>
