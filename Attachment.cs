@@ -95,7 +95,7 @@ namespace RocketChatPCL
 					attach.ImageWidth = m["image_dimensions"]["width"].Value<int>();
 				
 				if (m["image_dimensions"]["height"] != null)
-					attach.ImageWidth = m["image_dimensions"]["height"].Value<int>();
+					attach.ImageHeight = m["image_dimensions"]["height"].Value<int>();
 			}
 
 			return attach;
