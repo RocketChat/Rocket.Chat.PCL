@@ -39,6 +39,13 @@ namespace RocketChatPCL
 		public SettingsCollection Settings { get; }
 		public PermissionsCollection Permissions { get; }
 
+		public string AuthToken { 
+			get { return _authToken; } 
+		}
+		public string UserId { 
+			get { return _userId; } 
+		}
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="T:RocketChatPCL.AbstractRocketChatClient"/> class.
 		/// </summary>
