@@ -18,46 +18,36 @@ namespace RocketChatPCL
 		public event UserTypingEventArgs UserStoppedTyping;
 		public event RoomMessageReceivedEventArgs MessageReceived;
 
-		public Task Initialize(string userId, DateTime since)
+		public async Task Initialize(string userId, DateTime since)
 		{
-			var task = new Task(() =>
+			var rooms = await GetRooms(since);
+			var subrs = await GetSubscriptions(since);
+			await _meteor.Subscribe("stream-notify-user", new object[] { userId + "/rooms-changed" });
+			await _meteor.Subscribe("userChannels", new object[] { userId } );
+
+			foreach (var room in rooms.Added)
+				UpdateRoom(room);
+
+			foreach (var room in rooms.Updated)
+				UpdateRoom(room);
+
+			foreach (var room in rooms.Removed)
 			{
-				var rooms = GetRooms(since);
-				var subrs = GetSubscriptions(since);
-				_meteor.Subscribe("stream-notify-user", new object[] { userId + "/rooms-changed" });
-				_meteor.Subscribe("userChannels", new object[] { userId } );
-				rooms.Wait();
-				subrs.Wait();
+				if (_items.ContainsKey(room.Id))
+					_items.Remove(room.Id);
+			}
 
-				foreach (var room in rooms.Result.Added)
-					UpdateRoom(room);
+			foreach (var room in subrs.Added)
+				UpdateRoom(room);
 
-				foreach (var room in rooms.Result.Updated)
-					UpdateRoom(room);
+			foreach (var room in subrs.Updated)
+				UpdateRoom(room);
 
-				foreach (var room in rooms.Result.Removed)
-				{
-					if (_items.ContainsKey(room.Id))
-						_items.Remove(room.Id);
-				}
-
-				foreach (var room in subrs.Result.Added)
-					UpdateRoom(room);
-
-				foreach (var room in subrs.Result.Updated)
-					UpdateRoom(room);
-
-				foreach (var room in subrs.Result.Removed)
-				{
-					if (_items.ContainsKey(room.RoomId))
-						_items.Remove(room.RoomId);
-				}
-
-			});
-
-			task.Start();
-
-			return task;
+			foreach (var room in subrs.Removed)
+			{
+				if (room.Id != null && _items.ContainsKey(room.Id))
+					_items.Remove(room.RoomId);
+			}
 		}
 
 		private void UpdateRoom(Room room)
@@ -84,14 +74,10 @@ namespace RocketChatPCL
 		/// <returns>The rooms.</returns>
 		/// <param name="since">date with the latest client update time in order to just send what changed since last 
 		/// call. If it’s the first time calling, just send a Epoch as date.</param>
-		public Task<CollectionDiff<Room>> GetRooms(DateTime since)
+		public async Task<CollectionDiff<Room>> GetRooms(DateTime since)
 		{
-			return _meteor.CallWithResult("rooms/get", new object[] { new Dictionary<string, object>() { { "$date", TypeUtils.DateTimeToTimestamp(since) } } })
-						   .ContinueWith((arg) =>
-		   {
-			   var res = arg.Result;
-			   return ProcessRooms(res);
-		   });
+			var res = await _meteor.CallWithResult("rooms/get", new object[] { new Dictionary<string, object>() { { "$date", TypeUtils.DateTimeToTimestamp(since) } } });
+			return ProcessRooms(res);
 		}
 
 		/// <summary>
@@ -99,14 +85,10 @@ namespace RocketChatPCL
 		/// </summary>
 		/// <returns>The subscriptions.</returns>
 		/// <param name="since">Date since the last update</param>
-		public Task<CollectionDiff<Subscription>> GetSubscriptions(DateTime since)
+		public async Task<CollectionDiff<Subscription>> GetSubscriptions(DateTime since)
 		{
-			return _meteor.CallWithResult("subscriptions/get", new object[] { new Dictionary<string, object>() { { "$date", TypeUtils.DateTimeToTimestamp(since) } } })
-						   .ContinueWith((arg) =>
-		   {
-			   var res = arg.Result;
-			   return ProcessSubscriptions(res);
-		   });
+			var res = await _meteor.CallWithResult("subscriptions/get", new object[] { new Dictionary<string, object>() { { "$date", TypeUtils.DateTimeToTimestamp(since) } } });
+			return ProcessSubscriptions(res);
 		}
 		/// <summary>
 		/// Create a new public channel.
@@ -115,33 +97,29 @@ namespace RocketChatPCL
 		/// <param name="name">The name of the channel to create.</param>
 		/// <param name="participants">List of usernames of participants.</param>
 		/// <param name="readOnly">If set to <c>true</c> read only.</param>
-		public Task<Room> CreateChannel(string name, List<string> participants, bool readOnly)
+		public async Task<Room> CreateChannel(string name, List<string> participants, bool readOnly)
 		{
-			return _meteor.CallWithResult("createChannel", new object[] { name, participants, readOnly })
-						   .ContinueWith((arg) =>
+			var res = await _meteor.CallWithResult("createChannel", new object[] { name, participants, readOnly });
+			var room = new Room(_meteor);
+
+			room.Name = name;
+			room.ReadOnly = readOnly;
+			room.Type = RoomType.PublicChannel;
+
+			if (res["result"] != null && res["result"] is JArray)
 			{
-				var res = arg.Result;
-				var room = new Room(_meteor);
+				var arr = res["result"] as JArray;
+				var obj = arr[0] as JObject;
 
-				room.Name = name;
-				room.ReadOnly = readOnly;
-				room.Type = RoomType.PublicChannel;
-
-				if (res["result"] != null && res["result"] is JArray)
+				if (obj["rid"] != null)
 				{
-					var arr = res["result"] as JArray;
-					var obj = arr[0] as JObject;
-
-					if (obj["rid"] != null)
-					{
-						room.Id = obj["rid"].Value<string>();
-					}
-
-					return room;
+					room.Id = obj["rid"].Value<string>();
 				}
 
 				return room;
-			});
+			}
+
+			return room;
 		}
 		/// <summary>
 		/// Create a new private group.
@@ -150,33 +128,30 @@ namespace RocketChatPCL
 		/// <param name="name">The name of the channel to create.</param>
 		/// <param name="participants">List of usernames of participants.</param>
 		/// <param name="readOnly">If set to <c>true</c> read only.</param>
-		public Task<Room> CreatePrivateGroup(string name, List<string> participants, bool readOnly)
+		public async Task<Room> CreatePrivateGroup(string name, List<string> participants, bool readOnly)
 		{
-			return _meteor.CallWithResult("createPrivateGroup", new object[] { name, participants, readOnly })
-						   .ContinueWith((arg) =>
+			var res = await _meteor.CallWithResult("createPrivateGroup", new object[] { name, participants, readOnly });
+				
+			var room = new Room(_meteor);
+
+			room.Name = name;
+			room.ReadOnly = readOnly;
+			room.Type = RoomType.PrivateGroup;
+
+			if (res["result"] != null && res["result"] is JArray)
 			{
-				var res = arg.Result;
-				var room = new Room(_meteor);
+				var arr = res["result"] as JArray;
+				var obj = arr[0] as JObject;
 
-				room.Name = name;
-				room.ReadOnly = readOnly;
-				room.Type = RoomType.PrivateGroup;
-
-				if (res["result"] != null && res["result"] is JArray)
+				if (obj["rid"] != null)
 				{
-					var arr = res["result"] as JArray;
-					var obj = arr[0] as JObject;
-
-					if (obj["rid"] != null)
-					{
-						room.Id = obj["rid"].Value<string>();
-					}
-
-					return room;
+					room.Id = obj["rid"].Value<string>();
 				}
 
 				return room;
-			});
+			}
+
+			return room;
 		}
 
 		private CollectionDiff<Room> ProcessRooms(JObject obj)

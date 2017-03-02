@@ -23,28 +23,29 @@ namespace RocketChatPCL.iOS.Tests
 		/// </summary>
 		[Ignore]
 		[Test]
-		public void RocketChatTest()
+		public async void RocketChatTest()
 		{
 			//	Instantiate the client.
 			var rc = new RocketChatClient(RocketChatHost, RocketChatPort, RocketChatSSL);
 
-			rc.Connect(RocketChatUser, RocketChatPass)
-			  .ContinueWith((arg) => {
+			await rc.Connect(RocketChatUser, RocketChatPass);
 
-				//	Subscribe to events.
-				rc.Rooms.UserStartedTyping += (username, room) => Debug.WriteLine("User {0} is typing in room {1}", username, rc.Rooms[room].Name);
-				rc.Rooms.UserStoppedTyping += (username, room) => Debug.WriteLine("User {0} is no longer typing in room {1}", username, rc.Rooms[room].Name);
-				rc.Rooms.MessageReceived += (room, message) => Debug.WriteLine("New message received in room {0} from {1}: {2}", rc.Rooms[room].Name, message.User.Username, message.Text);
+			//	Subscribe to events.
+			rc.Rooms.UserStartedTyping += (username, room) => Debug.WriteLine("User {0} is typing in room {1}", username, rc.Rooms[room].Name);
+			rc.Rooms.UserStoppedTyping += (username, room) => Debug.WriteLine("User {0} is no longer typing in room {1}", username, rc.Rooms[room].Name);
+			rc.Rooms.MessageReceived += (room, message) => Debug.WriteLine("New message received in room {0} from {1}: {2}", rc.Rooms[room].Name, message.User.Username, message.Text);
 
-				//	Iterate over the rooms.
-				foreach (var room in rc.Rooms.Keys)
-				{
-					var rm = rc.Rooms[room];
-					rm.Subscribe();
- 					if (rm.Name != null)
-						Debug.WriteLine("Room Id: {0} Name: {1}", rm.Id, rm.Name);
-				}
-			});
+			//	Iterate over the rooms.
+			foreach (var room in rc.Rooms.Keys)
+			{
+				var rm = rc.Rooms[room];
+				var epoch = new DateTime(1970, 1, 1);
+				var result = await rm.LoadHistory(epoch, 100, epoch);
+				Debug.WriteLine("Got: {0} messages in the room {1}", rm.Name, result.Count);
+
+				if (rm.Name != null)
+					Debug.WriteLine("Room Id: {0} Name: {1}", rm.Id, rm.Name);
+			}
 
 			//	Sleep indefinitely to stop the test from aborting.
 			while (true)

@@ -75,22 +75,22 @@ namespace RocketChatPCL
 		/// <param name="host">The host name of the rocket chat server</param>
 		/// <param name="port">The port number of the rocket chat server</param>
 		/// <param name="ssl">If set to <c>true</c> https will be used.</param>
-		private Task<string> GetRemoteVersion(string host, int port, bool ssl)
+		private async Task<string> GetRemoteVersion(string host, int port, bool ssl)
 		{
 			string url = string.Format("{0}://{1}:{2}/api/v1/info", _ssl ? "https" : "http", _host, _port);
-			return _client.get(url).ContinueWith((versionTask) => {
-				if (versionTask.Result.ResponseCode != 200) {
-					return "0.0.0";
-				}
-
-				var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(versionTask.Result.ResponseText);
-
-				if (dictionary.ContainsKey("version")) {
-					return dictionary["version"].ToString();
-				}
-
+			var versionTask = await _client.get(url);
+				
+			if (versionTask.ResponseCode != 200) {
 				return "0.0.0";
-			});
+			}
+
+			var dictionary = JsonConvert.DeserializeObject<Dictionary<string, object>>(versionTask.ResponseText);
+
+			if (dictionary.ContainsKey("version")) {
+				return dictionary["version"].ToString();
+			}
+
+			return "0.0.0";
 		}
 
 		/// <summary>
@@ -99,7 +99,7 @@ namespace RocketChatPCL
 		/// <returns>True if log in successful, false otherwise</returns>
 		/// <param name="username">The username used to log into rocket chat.</param>
 		/// <param name="password">The password used to log into rocket chat.</param>
-		private Task<bool> DoLogin(string username, string password)
+		private async Task<bool> DoLogin(string username, string password)
 		{
 			string url = string.Format("{0}://{1}:{2}/api/v1/login", _ssl ? "https" : "http", _host, _port);
 			Dictionary<string, string> headers = new Dictionary<string, string>();
@@ -110,32 +110,27 @@ namespace RocketChatPCL
 				Password = password
 			});
 
-			var loginTask = _client.post(url, headers, str);
+			var loginTask = await _client.post(url, headers, str);
 
-			return loginTask.ContinueWith((arg) => {
-				if (loginTask.Result.ResponseCode == 401 || loginTask.Result.ResponseCode == 403 || 
-				    loginTask.Result.ResponseCode == 500) {
-					return false;
-				}
-
-				var loginResponse = JsonConvert.DeserializeObject<StandardResponse<SuccessfulAuthorization>>(loginTask.Result.ResponseText);
-
-				if (loginResponse.Status.Equals("success")) {
-					_userId = loginResponse.Data.UserId;
-					_authToken = loginResponse.Data.AuthToken;
-
-					_meteor.Connect(_host, _ssl);
-
-					var meteorResult = _meteor.LoginWithToken(_authToken);
-
-					meteorResult.Wait();
-
-					//	TODO: Parse the response.
-
-					return true;
-				}
+			if (loginTask.ResponseCode == 401 || loginTask.ResponseCode == 403 || 
+			    loginTask.ResponseCode == 500) {
 				return false;
-			});
+			}
+
+			var loginResponse = JsonConvert.DeserializeObject<StandardResponse<SuccessfulAuthorization>>(loginTask.ResponseText);
+
+			if (loginResponse.Status.Equals("success")) {
+				_userId = loginResponse.Data.UserId;
+				_authToken = loginResponse.Data.AuthToken;
+
+				_meteor.Connect(_host, _ssl);
+
+				await _meteor.LoginWithToken(_authToken);
+
+				return true;
+			}
+			return false;
+
 		}
 
 		/// <summary>
@@ -144,77 +139,67 @@ namespace RocketChatPCL
 		/// <returns>True if the connection is successful and false otherwise</returns>
 		/// <param name="username">The username used to log into rocket chat.</param>
 		/// <param name="password">The password used to log into rocket chat.</param>
-		public Task<bool> Connect(string username, string password)
+		public async Task<bool> Connect(string username, string password)
 		{
-			return GetRemoteVersion(_host, _port, _ssl).ContinueWith((version) => {
-				//	TODO: Check that the version is compatible.
-				var login = DoLogin(username, password);
-				login.Wait();
+			await GetRemoteVersion(_host, _port, _ssl);
 
-				if (!login.Result)
-					return false;
+			//	TODO: Check that the version is compatible.
+			var login = await DoLogin(username, password);
+
+			if (!login)
+				return false;
 				
-				_meteor.Subscribe("stream-notify-user", new object[] { _userId + "/message", false }).Wait();
-				_meteor.Subscribe("stream-notify-user", new object[] { _userId + "/otr", false }).Wait();
-				_meteor.Subscribe("stream-notify-user", new object[] { _userId + "/webrtc", false }).Wait();
-				_meteor.Subscribe("stream-notify-user", new object[] { _userId + "/notification", false }).Wait();
-				_meteor.Subscribe("stream-notify-user", new object[] { _userId + "/subscriptions-changed", false }).Wait();
-				_meteor.Subscribe("stream-notify-user", new object[] { _userId + "/rooms-changed", false }).Wait();
+			await _meteor.Subscribe("stream-notify-user", new object[] { _userId + "/message", false });
+			await _meteor.Subscribe("stream-notify-user", new object[] { _userId + "/otr", false });
+			await _meteor.Subscribe("stream-notify-user", new object[] { _userId + "/webrtc", false });
+			await _meteor.Subscribe("stream-notify-user", new object[] { _userId + "/notification", false });
+			await _meteor.Subscribe("stream-notify-user", new object[] { _userId + "/subscriptions-changed", false });
+			await _meteor.Subscribe("stream-notify-user", new object[] { _userId + "/rooms-changed", false });
 
-				_meteor.MessageReceived += (message) => Debug.WriteLine("Message received: {0}", message);
+			_meteor.MessageReceived += (message) => Debug.WriteLine("Message received: {0}", message);
 
-				//	Prepopulate the system with some meta-data from the server
-				//	Including the current list of users rooms/subscriptions/permissions and the server settings.
-				var rms = Rooms.Initialize(_userId, TypeUtils.UnixEpoch);
-				var sets = Settings.Initialize(_userId, TypeUtils.UnixEpoch);
-				var perms = Permissions.Initialize(_userId, TypeUtils.UnixEpoch);
+			//	Prepopulate the system with some meta-data from the server
+			//	Including the current list of users rooms/subscriptions/permissions and the server settings.
+			await Rooms.Initialize(_userId, TypeUtils.UnixEpoch);
+			await Settings.Initialize(_userId, TypeUtils.UnixEpoch);
+			await Permissions.Initialize(_userId, TypeUtils.UnixEpoch);
 
-				//	Wait for them to finish before returning.
-				rms.Wait();
-				sets.Wait();
-				perms.Wait();
-
-				_meteor.Subscribe("userData").Wait();
-				_meteor.Subscribe("activeUsers").Wait();
-				return true;
-			});
+			await _meteor.Subscribe("userData");
+			await _meteor.Subscribe("activeUsers");
+			return true;
 		}
 
 		/// <summary>
 		/// This method call is used to get server-wide special users and their roles. 
 		/// </summary>
 		/// <returns>The user roles.</returns>
-		public Task<List<User>> GetUserRoles()
+		public async Task<List<User>> GetUserRoles()
 		{
-			return _meteor.CallWithResult("getUserRoles", new object[] { })
-						  .ContinueWith((arg) => {
-				List<User> users = new List<User>();
-			   	var result = arg.Result["result"] as JArray;
+			var arg = await _meteor.CallWithResult("getUserRoles", new object[] { });
+			List<User> users = new List<User>();
+		   	var result = arg["result"] as JArray;
 
-				foreach (var user in result)
-					users.Add(User.Parse(user as JObject));
-			   
-			   	return users;
-			});
+			foreach (var user in result)
+				users.Add(User.Parse(user as JObject));
+		   
+		   	return users;
 		}
 
 		/// <summary>
 		/// Returns a list of custom emoji registered with the server.
 		/// </summary>
 		/// <returns>The custom emoji.</returns>
-		public Task<List<CustomEmoji>> ListCustomEmoji()
+		public async Task<List<CustomEmoji>> ListCustomEmoji()
 		{
-			return _meteor.CallWithResult("listEmojiCustom", new object[] { })
-						   .ContinueWith((arg) =>
-			{
-				List<CustomEmoji> users = new List<CustomEmoji>();
-				var result = arg.Result["result"] as JArray;
+			var arg = await _meteor.CallWithResult("listEmojiCustom", new object[] { });
 
-				foreach (var user in result)
-					users.Add(CustomEmoji.Parse(user as JObject));
-			   
-				return users;
-			});
+			List<CustomEmoji> users = new List<CustomEmoji>();
+			var result = arg["result"] as JArray;
+
+			foreach (var user in result)
+				users.Add(CustomEmoji.Parse(user as JObject));
+		   
+			return users;
 		}
 
 		/// <summary>
@@ -222,7 +207,7 @@ namespace RocketChatPCL
 		/// </summary>
 		/// <returns>The default status.</returns>
 		/// <param name="status">Status.</param>
-		public Task<bool> SetDefaultStatus(UserStatus status)
+		public async Task<bool> SetDefaultStatus(UserStatus status)
 		{
 			string userStatus = "online";
 			switch (status) {
@@ -239,9 +224,8 @@ namespace RocketChatPCL
 				userStatus = "offline";
 				break;
 			}
-			return _meteor.CallWithResult("UserPresence:setDefaultStatus", new object[] { userStatus })
-						  .ContinueWith((a) => a.Result != null && a.Result["msg"] != null && "result".Equals(a.Result["msg"].Value<string>()));
-			
+			var a = await _meteor.CallWithResult("UserPresence:setDefaultStatus", new object[] { userStatus });
+			return a != null && a["msg"] != null && "result".Equals(a["msg"].Value<string>());
 		}
 
 		/// <summary>
@@ -250,7 +234,7 @@ namespace RocketChatPCL
 		/// </summary>
 		/// <returns>The temporary status.</returns>
 		/// <param name="status">Status.</param>
-		public Task<bool> SetTemporaryStatus(UserStatus status)
+		public async Task<bool> SetTemporaryStatus(UserStatus status)
 		{
 			string userStatus = "online";
 			switch (status) {
@@ -261,8 +245,8 @@ namespace RocketChatPCL
 				userStatus = "online";
 				break;
 			}
-			return _meteor.CallWithResult("UserPresence:" + userStatus, new object[] { userStatus })
-						   .ContinueWith((arg) => arg.Result != null && arg.Result["msg"] != null && "result".Equals(arg.Result["msg"].Value<string>()));
+			var arg = await _meteor.CallWithResult("UserPresence:" + userStatus, new object[] { userStatus });
+			return arg != null && arg["msg"] != null && "result".Equals(arg["msg"].Value<string>());
 		}
 	}
 }

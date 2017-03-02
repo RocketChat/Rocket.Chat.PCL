@@ -35,7 +35,7 @@ namespace RocketChatPCL
 		/// <param name="oldestMessage">the oldest message date  - this is used to do pagination</param>
 		/// <param name="quantity">The message quantity</param>
 		/// <param name="lastUpdate">A date object - the date of the last time the client got data for the room</param>
-		public Task<List<Message>> LoadHistory(DateTime oldestMessage, int quantity, DateTime lastUpdate)
+		public async Task<List<Message>> LoadHistory(DateTime oldestMessage, int quantity, DateTime lastUpdate)
 		{
 			var oldest = TypeUtils.DateTimeToTimestamp(oldestMessage);
 			var updated = TypeUtils.DateTimeToTimestamp(lastUpdate);
@@ -43,18 +43,14 @@ namespace RocketChatPCL
 			var oldestObj = (oldest == 0) ? null : new Dictionary<string, object>() { { "$date", oldest } };
 			var updatedObj = new Dictionary<string, object>() { { "$date", updated } };
 
-			return _meteor.CallWithResult("loadHistory", new object[] { Id, oldestObj, quantity, updatedObj })
-			  .ContinueWith((messages) => {
-				var obj = messages.Result;
-				var response = new List<Message>();
+			var obj = await _meteor.CallWithResult("loadHistory", new object[] { Id, oldestObj, quantity, updatedObj });
+			var response = new List<Message>();
 
-				if (obj["result"] != null)
-					if (obj["result"]["messages"] != null)
-						foreach (var message in obj["result"]["messages"] as JArray)
-							response.Add(Message.Parse(_meteor, message as JObject));
-				
-				return response;
-			});
+			if (obj != null && obj["result"] != null && obj["result"]["messages"] != null)
+				foreach (var message in obj["result"]["messages"] as JArray)
+					response.Add(Message.Parse(_meteor, message as JObject));
+			
+			return response;
 		}
 
 		/// <summary>
@@ -63,57 +59,54 @@ namespace RocketChatPCL
 		/// <returns>The message.</returns>
 		/// <param name="roomId">The room id for where to send this message</param>
 		/// <param name="message">The message body (the text of the message itself)</param>
-		public Task<Message> SendMessage(string message)
+		public async Task<Message> SendMessage(string message)
 		{
-			return _meteor.CallWithResult("sendMessage", new object[] { new Dictionary<string, object> { { "rid", Id }, { "msg", message }} })
-				          .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null ? Message.Parse(_meteor, arg.Result["result"] as JObject) : null);
+			var arg = await _meteor.CallWithResult("sendMessage", new object[] { new Dictionary<string, object> { { "rid", Id }, { "msg", message } } });
+			return arg != null && arg["result"] != null ? Message.Parse(_meteor, arg["result"] as JObject) : null;
 		}
 
 		/// <summary>
 		/// This method call is used to get room-wide special users and their roles. You may send an collection of room id (at least one).
 		/// </summary>
 		/// <returns> collection of users and its roles per room.</returns>
-		public Task<List<RoomRole>> GetRoles()
+		public async Task<List<RoomRole>> GetRoles()
 		{
-			return _meteor.CallWithResult("getRoomRoles", new object[] { Id })
-						  .ContinueWith((arg) => {
-				var res = arg.Result;
-				var roles = new List<RoomRole>();
-				if (res["result"] != null)
-				foreach (var role in res["result"] as JArray)
-					roles.Add(RoomRole.Parse(role as JObject));
-				
-			   	return roles;
-		   });
+			var res = await _meteor.CallWithResult("getRoomRoles", new object[] { Id });
+			var roles = new List<RoomRole>();
+			if (res["result"] != null)
+			foreach (var role in res["result"] as JArray)
+				roles.Add(RoomRole.Parse(role as JObject));
+			
+		   	return roles;
 		}
 		/// <summary>
 		/// Deletes the room.
 		/// </summary>
 		/// <returns>True on success, false on failure.</returns>
-		public Task<bool> Delete()
+		public async Task<bool> Delete()
 		{
-			return _meteor.CallWithResult("eraseRoom", new object[] { Id })
-				          .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null && arg.Result["result"].Value<int>() == 1);
+			var arg = await _meteor.CallWithResult("eraseRoom", new object[] { Id });
+			return arg != null && arg["result"] != null && arg["result"].Value<int>() == 1;
 		}
 
 		/// <summary>
 		/// Archives the room.
 		/// </summary>
 		/// <returns>True on success, false on failure.</returns>
-		public Task<bool> Archive()
+		public async Task<bool> Archive()
 		{
-			return _meteor.CallWithResult("archiveRoom", new object[] { Id })
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["msg"] != null && "result".Equals(arg.Result["result"].Value<string>()));
+			var arg = await _meteor.CallWithResult("archiveRoom", new object[] { Id });
+			return arg != null && arg["msg"] != null && "result".Equals(arg["result"].Value<string>());
 		}
 
 		/// <summary>
 		/// Unarchives the room.
 		/// </summary>
 		/// <returns>True on success, false on failure.</returns>
-		public Task<bool> Unarchive()
+		public async Task<bool> Unarchive()
 		{
-			return _meteor.CallWithResult("unarchiveRoom", new object[] { Id })
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["msg"] != null && "result".Equals(arg.Result["result"].Value<string>()));
+			var arg = await _meteor.CallWithResult("unarchiveRoom", new object[] { Id });
+			return arg != null && arg["msg"] != null && "result".Equals(arg["result"].Value<string>());
 		}
 
 		/// <summary>
@@ -121,42 +114,41 @@ namespace RocketChatPCL
 		/// </summary>
 		/// <returns>The channel.</returns>
 		/// <param name="joinCode">Optional Join code.</param>
-		public Task<bool> Join(string joinCode = null)
+		public async Task<bool> Join(string joinCode = null)
 		{
 			object[] args;
 
 			args = joinCode != null ? new object[] { Id, joinCode } : new object[] { Id };
-
-			return _meteor.CallWithResult("joinRoom", args)
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null && arg.Result["result"].Value<bool>());
+			var arg = await _meteor.CallWithResult("joinRoom", args);
+			return arg != null && arg["result"] != null && arg["result"].Value<bool>();
 		}
 
 		/// <summary>
 		/// Leaves the channel.
 		/// </summary>
 		/// <returns>The channel.</returns>
-		public Task<bool> Leave()
+		public async Task<bool> Leave()
 		{
-			return _meteor.CallWithResult("leaveRoom", new object[] { Id })
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["msg"] != null && "result".Equals(arg.Result["result"].Value<string>()));
+			var arg = await _meteor.CallWithResult("leaveRoom", new object[] { Id });
+			return arg != null && arg["msg"] != null && "result".Equals(arg["result"].Value<string>());
 		}
 		/// <summary>
 		/// Hides the room.
 		/// </summary>
 		/// <returns>The room.</returns>
-		public Task<bool> Hide()
+		public async Task<bool> Hide()
 		{
-			return _meteor.CallWithResult("hideRoom", new object[] { Id })
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null && arg.Result["result"].Value<int>() == 1);
+			var arg = await _meteor.CallWithResult("hideRoom", new object[] { Id });
+			return arg != null && arg["result"] != null && arg["result"].Value<int>() == 1;
 		}
 		/// <summary>
 		/// Opens the room.
 		/// </summary>
 		/// <returns>The room.</returns>
-		public Task<bool> Open()
+		public async Task<bool> Open()
 		{
-			return _meteor.CallWithResult("openRoom", new object[] { Id })
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null && arg.Result["result"].Value<int>() == 1);
+			var arg = await _meteor.CallWithResult("openRoom", new object[] { Id });
+			return arg != null && arg["result"] != null && arg["result"].Value<int>() == 1;
 		}
 		/// <summary>
 		/// Favourites the room.
@@ -180,42 +172,35 @@ namespace RocketChatPCL
 		/// <returns>The room setting.</returns>
 		/// <param name="setting">Setting.</param>
 		/// <param name="value">Value.</param>
-		public Task<bool> SaveSetting(string setting, object value)
+		public async Task<bool> SaveSetting(string setting, object value)
 		{
-			return _meteor.CallWithResult("saveRoomSettings",
-			  new object[] { Id, setting, value })
-						   .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null && 
-				                         		  arg.Result["result"]["result"] != null && 
-				                         		  arg.Result["result"]["result"].Value<bool>());
+			var arg = await _meteor.CallWithResult("saveRoomSettings",
+												   new object[] { Id, setting, value });
+			return arg != null && 
+				   arg["result"] != null && 
+				   arg["result"]["result"] != null && 
+				   arg["result"]["result"].Value<bool>();
 		}
 
-		private Task<bool> SetRoomFavouriteStatus(string roomId, bool favourite)
+		private async Task<bool> SetRoomFavouriteStatus(string roomId, bool favourite)
 		{
-			return _meteor.CallWithResult("toggleFavorite", new object[] { roomId, favourite })
-						  .ContinueWith((arg) => arg.Result != null && arg.Result["result"] != null && arg.Result["result"].Value<int>() == 1);
+			var arg = await _meteor.CallWithResult("toggleFavorite", new object[] { roomId, favourite });
+			return arg != null && arg["result"] != null && arg["result"].Value<int>() == 1;
 		}
 
-		public Task Subscribe()
+		public async Task Subscribe()
 		{
-			var task = new Task(() =>
-			{
-				//	Subscribe to typing notifications.
-				var typingNotifications = _meteor.Subscribe("stream-notify-room", new object[] { Id + "/typing", false });
-				typingNotifications.Wait();
+			//	Subscribe to typing notifications.
+			await _meteor.Subscribe("stream-notify-room", new object[] { Id + "/typing", false });
 
-				//	Subscribe to delete message notifications
-				var deleteNotifications = _meteor.Subscribe("stream-notify-room", new object[] { Id + "/deleteMessage", false });
-				deleteNotifications.Wait();
+			//	Subscribe to delete message notifications
+			await _meteor.Subscribe("stream-notify-room", new object[] { Id + "/deleteMessage", false });
 
-				var messageNotifications = _meteor.Subscribe("stream-room-messages", new object[] { Id, false });
-				messageNotifications.Wait();
+			//	Subscribe to the room message notifications
+			await _meteor.Subscribe("stream-room-messages", new object[] { Id, false });
 
-				Debug.WriteLine("Subscribed to Room {0} ({1})", Name, Id);
-			});
+			Debug.WriteLine("Subscribed to Room {0} ({1})", Name, Id);
 
-			task.Start();
-
-			return task;
 		}
 
 		public static Room Update(Room existing, Room updated)

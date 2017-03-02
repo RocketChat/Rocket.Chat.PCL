@@ -100,53 +100,55 @@ namespace RocketChatPCL
 			return message;
 		}
 
-		public Task<bool> Delete()
+		public async Task<bool> Delete()
 		{
-			return _meteor.CallWithResult("deleteMessage", new object[] {
-				new Dictionary<string, object> { { "_id", Id } } })
-				          .ContinueWith((a) => a.Result != null && a.Result["msg"] != null && "result".Equals(a.Result["msg"].Value<string>()));
+			var a = await _meteor.CallWithResult("deleteMessage", new object[] {
+				new Dictionary<string, object> { { "_id", Id } } });
+
+			return a != null && a["msg"] != null && "result".Equals(a["msg"].Value<string>());
 		}
 
 
-		public Task<Message> Update(string message)
+		public async Task<Message> Update(string message)
 		{
-			return _meteor.CallWithResult("updateMessage", new object[] {
-				new Dictionary<string, object> { { "_id", Id }, { "rid", RoomId }, { "msg", message } } })
-						  .ContinueWith((a) => (a.Result["result"] != null) ? Message.Parse(_meteor, a.Result["result"] as JObject) : null);
+			var a = await _meteor.CallWithResult("updateMessage", new object[] {
+				new Dictionary<string, object> { { "_id", Id }, { "rid", RoomId }, { "msg", message } } });
+
+			return (a != null && a["result"] != null) ? Message.Parse(_meteor, a["result"] as JObject) : null;
 		}
 
-		public Task<bool> Star()
+		public async Task<bool> Star()
 		{
-			return SetMessageStarStatus(RoomId, Id, true);
+			return await SetMessageStarStatus(RoomId, Id, true);
 		}
 
-		public Task<bool> Unstar()
+		public async Task<bool> Unstar()
 		{
-			return SetMessageStarStatus(RoomId, Id, false);
+			return await SetMessageStarStatus(RoomId, Id, false);
 		}
 
-		public Task<bool> React(string emoji)
+		public async Task<bool> React(string emoji)
 		{
-			return _meteor.CallWithResult("setReaction", new object[] { emoji, Id })
-						  .ContinueWith((a) => a.Result != null && a.Result["msg"] != null && "result".Equals(a.Result["msg"].Value<string>()));
+			var a = await _meteor.CallWithResult("setReaction", new object[] { emoji, Id });
+			return a != null && a["msg"] != null && "result".Equals(a["msg"].Value<string>());
 		}
 
-		public Task<Message> Pin()
+		public async Task<Message> Pin()
 		{
-			return _meteor.CallWithResult("pinMessage", new object[] { new Dictionary<string, object>() { { "_id", Id }, { "rid", RoomId } } })
-						  .ContinueWith((a) => a.Result != null && a.Result["result"] != null ? Message.Parse(_meteor, a.Result["result"] as JObject) : null);
+			var a = await _meteor.CallWithResult("pinMessage", new object[] { new Dictionary<string, object>() { { "_id", Id }, { "rid", RoomId } } });
+			return a != null && a["result"] != null ? Message.Parse(_meteor, a["result"] as JObject) : null;
 		}
 
-		public Task<Message> Unpin()
+		public async Task<Message> Unpin()
 		{
-			return _meteor.CallWithResult("unpinMessage", new object[] { new Dictionary<string, object>() { { "_id", Id }, { "rid", RoomId } } })
-				          .ContinueWith((a) => a.Result != null && a.Result["result"] != null ? Message.Parse(_meteor, a.Result["result"] as JObject) : null);
+			var a = await _meteor.CallWithResult("unpinMessage", new object[] { new Dictionary<string, object>() { { "_id", Id }, { "rid", RoomId } } });
+			return a != null && a["result"] != null ? Message.Parse(_meteor, a["result"] as JObject) : null;
 		}
 
-		private Task<bool> SetMessageStarStatus(string roomId, string messageId, bool starred)
+		private async Task<bool> SetMessageStarStatus(string roomId, string messageId, bool starred)
 		{
-			return _meteor.CallWithResult("starMessage", new object[] { new Dictionary<string, object> { { "_id", messageId }, { "rid", roomId }, { "starred", starred } } })
-						  .ContinueWith((a) => a.Result["result"] != null && a.Result["result"].Value<int>() == 1);
+			var a = await _meteor.CallWithResult("starMessage", new object[] { new Dictionary<string, object> { { "_id", messageId }, { "rid", roomId }, { "starred", starred } } });
+			return a != null && a["result"] != null && a["result"].Value<int>() == 1;
 		}
 	}
 }

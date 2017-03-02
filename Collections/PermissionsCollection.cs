@@ -16,31 +16,24 @@ namespace RocketChatPCL
 			_permissionsByRole = new Dictionary<string, HashSet<Permission>>();
 		}
 
-		public Task Initialize(string userId, DateTime since)
+		public async Task Initialize(string userId, DateTime since)
 		{
-			var task = new Task(() =>
+			var permissions = await GetPermissions();
+
+			foreach (var permission in permissions)
 			{
-				var permissions = GetPermissions();
-				permissions.Wait();
+				_items.Add(permission.Id, permission);
 
-				foreach (var permission in permissions.Result)
+				foreach (var role in permission.Roles)
 				{
-					_items.Add(permission.Id, permission);
-
-					foreach (var role in permission.Roles)
+					if (!_permissionsByRole.ContainsKey(role))
 					{
-						if (!_permissionsByRole.ContainsKey(role))
-						{
-							_permissionsByRole[role] = new HashSet<Permission>();
-						}
-						_permissionsByRole[role].Add(permission);
+						_permissionsByRole[role] = new HashSet<Permission>();
 					}
+					_permissionsByRole[role].Add(permission);
 				}
-			});
+			}
 
-			task.Start();
-
-			return task;
 		}
 
 		/// <summary>
@@ -48,25 +41,22 @@ namespace RocketChatPCL
 		/// You may use this information to change your UI according to the permissons a user has (hidding what he can’t do for example).
 		/// </summary>
 		/// <returns>The permissions.</returns>
-		public Task<List<Permission>> GetPermissions()
+		public async Task<List<Permission>> GetPermissions()
 		{
-			return _meteor.CallWithResult("permissions/get", new object[] { })
-						   .ContinueWith((arg) =>
+			var res = await _meteor.CallWithResult("permissions/get", new object[] { });
+
+			List<Permission> permissions = new List<Permission>();
+			if (res == null || res["result"] == null)
 			{
-				List<Permission> permissions = new List<Permission>();
-				var res = arg.Result;
-				if (res == null || res["result"] == null)
-				{
-					return permissions;
-				}
-
-				foreach (var item in res["result"] as JArray)
-				{
-					permissions.Add(Permission.Parse(item as JObject));
-				}
-
 				return permissions;
-			});
+			}
+
+			foreach (var item in res["result"] as JArray)
+			{
+				permissions.Add(Permission.Parse(item as JObject));
+			}
+
+			return permissions;
 		}
 
 		protected override void OnItemAdded(string id, string collection, JObject obj)
