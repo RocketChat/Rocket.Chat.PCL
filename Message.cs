@@ -7,6 +7,10 @@ using Newtonsoft.Json.Linq;
 
 namespace RocketChatPCL
 {
+	public enum MessageType
+	{
+		MESSAGE, ROOM_CHANGED_TOPIC, ADDED_USER, USER_JOINED, USER_LEFT, MESSAGE_PINNED
+	}
 	public class Message
 	{
 		private IMeteor _meteor;
@@ -27,6 +31,7 @@ namespace RocketChatPCL
 		public bool ParseUrls { get; set; }
 		public Bot Bot { get; set; }
 		public Dictionary<string, List<string>> Reactions { get; set; }
+		public MessageType Type { get; set; }
 
 		public Message(IMeteor meteor)
 		{
@@ -42,6 +47,35 @@ namespace RocketChatPCL
 
 			if (m["rid"] != null)
 				message.RoomId = (m["rid"] as JValue).Value<string>();
+
+			if (m["t"] != null && m["t"] is JValue)
+			{
+				switch ((m["t"] as JValue).Value<string>())
+				{
+					case "room_changed_topic":
+						message.Type = MessageType.ROOM_CHANGED_TOPIC;
+						break;
+					case "uj":
+						message.Type = MessageType.USER_JOINED;
+						break;
+					case "ul":
+						message.Type = MessageType.USER_LEFT;
+						break;
+					case "au":
+						message.Type = MessageType.ADDED_USER;
+						break;
+					case "message_pinned":
+						message.Type = MessageType.MESSAGE_PINNED;
+						break;
+					default:
+						message.Type = MessageType.MESSAGE;
+						break;
+				}
+			}
+			else
+			{
+				message.Type = MessageType.MESSAGE;
+			}
 
 			if (m["msg"] != null)
 				message.Text = (m["msg"] as JValue).Value<string>();
