@@ -77,6 +77,9 @@ namespace RocketChatPCL
 				message.Type = MessageType.MESSAGE;
 			}
 
+			if (m["ts"] != null)
+				message.Created = TypeUtils.ParseDateTime(m["ts"] as JObject);
+
 			if (m["msg"] != null)
 				message.Text = (m["msg"] as JValue).Value<string>();
 
