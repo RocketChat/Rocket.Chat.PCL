@@ -60,6 +60,12 @@ namespace RocketChatPCL
 		public string Colour { get; set; }
 
 		/// <summary>
+		/// Gets or sets the text.
+		/// </summary>
+		/// <value>The text.</value>
+		public string Text { get; set; }
+
+		/// <summary>
 		/// Parse the specified JSON obejct into an attachment
 		/// </summary>
 		/// <returns>An attachment.</returns>
@@ -96,6 +102,16 @@ namespace RocketChatPCL
 				
 				if (m["image_dimensions"]["height"] != null)
 					attach.ImageHeight = m["image_dimensions"]["height"].Value<int>();
+			}
+
+			if (m["text"] != null)
+			{
+				attach.Text = m["text"].Value<string>();
+			}
+
+			if (m["color"] != null)
+			{
+				attach.Text = m["text"].Value<string>();
 			}
 
 			return attach;
