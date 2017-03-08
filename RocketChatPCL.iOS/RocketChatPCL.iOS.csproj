@@ -9,7 +9,7 @@
     <RootNamespace>RocketChatPCL</RootNamespace>
     <AssemblyName>RocketChatPCL.iOS</AssemblyName>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <ReleaseVersion>0.1.8</ReleaseVersion>
+    <ReleaseVersion>0.1.9</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

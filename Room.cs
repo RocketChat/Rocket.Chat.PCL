@@ -153,6 +153,15 @@ namespace RocketChatPCL
 			return arg != null && arg["result"] != null && arg["result"].Value<int>() == 1;
 		}
 		/// <summary>
+		/// Marks as read.
+		/// </summary>
+		/// <returns>The as read.</returns>
+		public async Task<bool> MarkAsRead()
+		{
+			var arg = await _meteor.CallWithResult("readMessages", new object[] { Id });
+			return arg != null && arg["result"] != null && arg["result"].Value<int>() == 1; 
+		}
+		/// <summary>
 		/// Favourites the room.
 		/// </summary>
 		/// <returns>The room.</returns>
