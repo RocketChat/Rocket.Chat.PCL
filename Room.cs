@@ -21,6 +21,8 @@ namespace RocketChatPCL
 		public RoomType Type { get; set; }
 		public List<string> MutedUsers { get; set; }
 		public DateTime DeletedAt { get; set; }
+		public int UnreadMessages { get; set; }
+		public DateTime LastSeenDate { get; set; }
 
 		public Room(IMeteor meteor)
 		{
@@ -227,15 +229,9 @@ namespace RocketChatPCL
 
 			room.Id = updated.RoomId != null ? updated.RoomId : existing.Id;
 			room.Name = updated.Name != null ? updated.Name : existing.Name;
-			//room.Description = updated.Description != null ? updated.Description : existing.Description;
-			//room.Owner = updated.Owner != null ? updated.Owner : existing.Owner;
-			//room.Topic = updated.Topic != null ? updated.Topic : existing.Topic;
-			//room.Default = updated.Default;
-			//room.ReadOnly = updated.ReadOnly;
+			room.LastSeenDate = updated.LastSeenDate;
 			room.Type = updated.Type;
-			//room.MutedUsers = updated.MutedUsers != null ? updated.MutedUsers : existing.MutedUsers;
-			//room.DeletedAt = updated.DeletedAt;
-
+			room.UnreadMessages = updated.UnreadMessages;
 
 			return room;
 		}
