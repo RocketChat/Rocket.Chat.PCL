@@ -42,16 +42,21 @@ namespace RocketChatPCL
 			var oldest = TypeUtils.DateTimeToTimestamp(oldestMessage);
 			var updated = TypeUtils.DateTimeToTimestamp(lastUpdate);
 
-			var oldestObj = (oldest == 0) ? null : new Dictionary<string, object>() { { "$date", oldest } };
-			var updatedObj = new Dictionary<string, object>() { { "$date", updated } };
+			var oldestObj = (oldest == 0) ? null : new Dictionary<string, long>() { { "$date", oldest } };
+			var updatedObj = new Dictionary<string, long>() { { "$date", updated } };
 
+			return await LoadHistory(oldestObj, quantity, updatedObj);
+		}
+
+		public async Task<List<Message>> LoadHistory(Dictionary<string, long> oldestObj, int quantity, Dictionary<string, long> updatedObj)
+		{
 			var obj = await _meteor.CallWithResult("loadHistory", new object[] { Id, oldestObj, quantity, updatedObj });
 			var response = new List<Message>();
 
 			if (obj != null && obj["result"] != null && obj["result"]["messages"] != null)
 				foreach (var message in obj["result"]["messages"] as JArray)
 					response.Add(Message.Parse(_meteor, message as JObject));
-			
+
 			return response;
 		}
 

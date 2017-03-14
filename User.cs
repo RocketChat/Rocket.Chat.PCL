@@ -12,6 +12,7 @@ namespace RocketChatPCL
 		public List<string> Roles { get; set; }
 		public int UtcOffset { get; set; }
 		public string Status { get; set; }
+		public string Name { get; set; }
 
 		public static User Parse(JObject m)
 		{
@@ -41,6 +42,9 @@ namespace RocketChatPCL
 
 			if (m["status"] != null)
 				user.Status = m["status"].Value<string>();
+
+			if (m["name"] != null)
+				user.Name = m["name"].Value<string>();
 			
 			return user;
 		}

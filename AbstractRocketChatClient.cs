@@ -123,6 +123,30 @@ namespace RocketChatPCL
 				_userId = loginResponse.Data.UserId;
 				_authToken = loginResponse.Data.AuthToken;
 
+				var meUrl = string.Format("{0}://{1}:{2}/api/v1/me", _ssl ? "https" : "http", _host, _port);
+				Dictionary<string, string> meHeaders = new Dictionary<string, string>();
+				meHeaders.Add("Accept", "application/json");
+				meHeaders.Add("X-Auth-Token", _authToken);
+				meHeaders.Add("X-User-Id", _userId);
+
+				var meTask = await _client.get(meUrl, meHeaders);
+
+				if (meTask.ResponseCode != 200)
+				{
+					return false;
+				}
+
+				var meResponse = JsonConvert.DeserializeObject<MeResponse>(meTask.ResponseText);
+
+
+				User user = new User();
+				user.Id = _userId;
+				user.Name = meResponse.Name;
+				user.Username = meResponse.Username;
+				user.UtcOffset = meResponse.UtcOffset;
+
+				Users.Add(user);
+
 				_meteor.Connect(_host, _ssl);
 
 				await _meteor.LoginWithToken(_authToken);
@@ -247,6 +271,11 @@ namespace RocketChatPCL
 			}
 			var arg = await _meteor.CallWithResult("UserPresence:" + userStatus, new object[] { userStatus });
 			return arg != null && arg["msg"] != null && "result".Equals(arg["msg"].Value<string>());
+		}
+
+		public async Task Disconnect()
+		{
+			_meteor.Disconnect();
 		}
 	}
 }

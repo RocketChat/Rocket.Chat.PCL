@@ -15,6 +15,7 @@ namespace RocketChatPCL
 		PermissionsCollection Permissions { get; }
 
 		Task<bool> Connect(string username, string password);
+		Task Disconnect();
 		/// <summary>
 		/// This method call is used to get server-wide special users and their roles. 
 		/// </summary>

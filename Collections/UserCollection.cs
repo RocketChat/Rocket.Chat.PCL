@@ -33,6 +33,16 @@ namespace RocketChatPCL
 			Update(id, obj);
 		}
 
+		public void Add(User user)
+		{
+			_items[user.Id] = user;
+
+			if (UserStatusChanged != null)
+			{
+				UserStatusChanged(user);
+			}
+		}
+
 		private void Update(string id, JObject obj)
 		{
 			User user;
