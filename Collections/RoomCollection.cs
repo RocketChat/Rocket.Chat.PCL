@@ -10,6 +10,7 @@ namespace RocketChatPCL
 {
 	public class RoomCollection: AbstractCollection<Room>, IRoomCollection
 	{
+		private string userId;
 		public RoomCollection(IMeteor meteor): base(meteor, "userChannels", "stream-notify-room", "stream-notify-user", "stream-room-messages")
 		{
 		}
@@ -17,12 +18,15 @@ namespace RocketChatPCL
 		public event UserTypingEventArgs UserStartedTyping;
 		public event UserTypingEventArgs UserStoppedTyping;
 		public event RoomMessageReceivedEventArgs MessageReceived;
+		public event RoomUpdatedEventArgs RoomUpdated;
 
 		public async Task Initialize(string userId, DateTime since)
 		{
+			this.userId = userId;
 			var rooms = await GetRooms(since);
 			var subrs = await GetSubscriptions(since);
 			await _meteor.Subscribe("stream-notify-user", new object[] { userId + "/rooms-changed" });
+			await _meteor.Subscribe("stream-notify-user", new object[] { userId + "/subscriptions-changed", false });
 			await _meteor.Subscribe("userChannels", new object[] { userId } );
 
 			foreach (var room in rooms.Added)
@@ -242,7 +246,7 @@ namespace RocketChatPCL
 
 		protected override void OnItemUpdated(string id, string collection, JObject obj)
 		{
-			if ("stream-notify-room".Equals(collection) &&
+ 			if ("stream-notify-room".Equals(collection) &&
 				obj["eventName"] != null && obj["eventName"].Value<string>().EndsWith("/typing"))
 			{
 				var eventName = obj["eventName"].Value<string>();
@@ -262,7 +266,7 @@ namespace RocketChatPCL
 
 			}
 			else if ("stream-room-messages".Equals(collection) &&
-			        obj["eventName"] != null)
+					obj["eventName"] != null)
 			{
 				var eventName = obj["eventName"].Value<string>();
 				var eventArgs = obj["args"] as JArray;
@@ -274,6 +278,24 @@ namespace RocketChatPCL
 
 					if (MessageReceived != null)
 						MessageReceived(eventName, msg);
+				}
+			}
+			else if ("stream-notify-user".Equals(collection) &&
+					 obj["eventName"] != null &&
+					 obj["eventName"].Value<string>().Equals(userId + "/subscriptions-changed"))
+			{
+				var eventArgs = obj["args"] as JArray;
+				if (eventArgs.Count > 1)
+				{
+					var subObj = eventArgs[1] as JObject;
+					if (subObj["rid"] != null && 
+					    _items.ContainsKey(subObj["rid"].Value<string>()))
+					{
+						var rm = Room.Update(_items[subObj["rid"].Value<string>()], Subscription.Parse(subObj));
+
+						if (RoomUpdated != null)
+							RoomUpdated(rm);
+					}
 				}
 			}
 		}

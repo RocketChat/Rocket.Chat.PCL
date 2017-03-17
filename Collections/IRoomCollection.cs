@@ -6,12 +6,14 @@ namespace RocketChatPCL
 {
 	public delegate void UserTypingEventArgs(string username, string room);
 	public delegate void RoomMessageReceivedEventArgs(string room, Message message);
+	public delegate void RoomUpdatedEventArgs(Room room);
 
 	public interface IRoomCollection: IRCollection<Room>
 	{
 		event UserTypingEventArgs UserStartedTyping;
 		event UserTypingEventArgs UserStoppedTyping;
 		event RoomMessageReceivedEventArgs MessageReceived;
+		event RoomUpdatedEventArgs RoomUpdated;
 		/// <summary>
 		/// This is the method call used to get all the rooms a user belongs to. 
 		/// It accepts a timestamp with the latest client update time in order to just send what changed since last 
