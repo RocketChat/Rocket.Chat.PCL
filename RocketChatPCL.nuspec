@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
-    <version>0.1.12</version>
+    <version>0.1.13</version>
     <authors>Shaun Campbell</authors>
     <owners>Shaun Campbell</owners>
     <licenseUrl>https://github.com/RocketChat/Rocket.Chat.PCL/LICENSE</licenseUrl>

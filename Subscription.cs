@@ -54,10 +54,10 @@ namespace RocketChatPCL
 				subscription.CreatedBy = User.Parse(m["u"] as JObject);
 
 			if (m["open"] != null)
-				subscription.IsAlert = (m["open"] as JValue).Value<bool>();
+				subscription.IsAlert = (m["alert"] as JValue).Value<bool>();
 
 			if (m["alert"] != null)
-				subscription.IsOpen = (m["alert"] as JValue).Value<bool>();
+				subscription.IsOpen = (m["open"] as JValue).Value<bool>();
 			
 			subscription.Roles = new List<string>();
 			if (m["roles"] != null)
