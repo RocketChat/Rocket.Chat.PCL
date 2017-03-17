@@ -23,6 +23,7 @@ namespace RocketChatPCL
 		public DateTime DeletedAt { get; set; }
 		public int UnreadMessages { get; set; }
 		public DateTime LastSeenDate { get; set; }
+		public bool IsAlert { get; set; }
 
 		public Room(IMeteor meteor)
 		{
@@ -246,6 +247,7 @@ namespace RocketChatPCL
 			room.LastSeenDate = updated.LastSeenDate;
 			room.Type = updated.Type;
 			room.UnreadMessages = updated.UnreadMessages;
+			room.IsAlert = updated.IsAlert;
 
 			return room;
 		}
