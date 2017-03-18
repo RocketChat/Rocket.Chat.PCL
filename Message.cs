@@ -122,7 +122,7 @@ namespace RocketChatPCL
 				message.Bot = Bot.Parse(m["bot"] as JObject);
 
 			message.Reactions = new Dictionary<string, List<string>>();
-			if (m["reactions"] != null)
+			if (m["reactions"] != null && m["reactions"] is JObject)
 			{
 				foreach (var reaction in (m["reactions"] as JObject))
 				{

@@ -111,7 +111,7 @@ namespace RocketChatPCL
 
 			if (m["color"] != null)
 			{
-				attach.Text = m["text"].Value<string>();
+				attach.Text = m["color"].Value<string>();
 			}
 
 			return attach;

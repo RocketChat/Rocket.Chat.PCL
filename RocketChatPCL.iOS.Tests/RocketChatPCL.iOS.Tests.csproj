@@ -9,7 +9,7 @@
     <RootNamespace>RocketChatPCL.iOS.Tests</RootNamespace>
     <AssemblyName>RocketChatPCL.iOS.Tests</AssemblyName>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
-    <ReleaseVersion>0.1.14</ReleaseVersion>
+    <ReleaseVersion>0.1.16</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
     <DebugSymbols>true</DebugSymbols>
